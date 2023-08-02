@@ -1,65 +1,66 @@
 #include <Novice.h>
-#include"Vector2.h"
+#include"Vector3.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include"imgui.h"
 
 const char kWindowTitle[] = "TR1_ツシマ_コウタ";
 
 struct Block{
-	Vector2 pos;
+	Vector3 pos;
 	float radius;
 	int color;
 };
 
 struct Circle {
-	Vector2 center;     // 中心
+	Vector3 center;     // 中心
 	float radius;       // 半径
 	float speed;        // 移動速度
 	unsigned int color; // 色
 };
 struct Capsule {
-	Vector2 start;
-	Vector2 end;
+	Vector3 start;
+	Vector3 end;
 	float radius;
 	unsigned int color; // 色
 };
 struct Line {
-	Vector2 start;
-	Vector2 end;
+	Vector3 start;
+	Vector3 end;
 	unsigned int color; // 色
 };
-Vector2 ToScreen(const Vector2* world) {
+Vector3 ToScreen(const Vector3* world) {
 	// 今回のワールド座標系からスクリーン座標系は
 	// 原点位置がyに500ずれていて、y軸が反転
-	const Vector2 kWorldToScreenTranslate = { 0.0f,0.f };
-	const Vector2 kWorldToScreenScale = { 1.0f, 1.0f };
+	const Vector3 kWorldToScreenTranslate = { 0.0f,0.f };
+	const Vector3 kWorldToScreenScale = { 1.0f, 1.0f };
 	return {
 	  (world->x * kWorldToScreenScale.x) + kWorldToScreenTranslate.x,
 	  (world->y * kWorldToScreenScale.y) + kWorldToScreenTranslate.y };
 }
 
 
-float Dot(const Vector2* lhs, const Vector2* rhs) { return lhs->x * rhs->x + lhs->y * rhs->y; }
+float Dot(const Vector3* lhs, const Vector3* rhs) { return lhs->x * rhs->x + lhs->y * rhs->y; }
 
 void DrawCircle(const Circle* circle) {
-	Vector2 screenCenter = ToScreen(&circle->center);
+	Vector3 screenCenter = ToScreen(&circle->center);
 	Novice::DrawEllipse(
 		int(screenCenter.x), int(screenCenter.y), int(circle->radius), int(circle->radius), 0.0f,
 		circle->color, kFillModeSolid);
 }
 
 void DrawLine(const Line* line) {
-	Vector2 screenStart = ToScreen(&line->start);
-	Vector2 screenEnd = ToScreen(&line->end);
+	Vector3 screenStart = ToScreen(&line->start);
+	Vector3 screenEnd = ToScreen(&line->end);
 	Novice::DrawLine(
 		int(screenStart.x), int(screenStart.y), int(screenEnd.x), int(screenEnd.y), line->color);
 }
 
-Vector2 Perpendicular(const Vector2* vector) { return { -vector->y, vector->x }; }
+Vector3 Perpendicular(const Vector3* vector) { return { -vector->y, vector->x }; }
 
-Vector2 Normalize(const Vector2* original) {
+Vector3 Normalize(const Vector3* original) {
 	float dot = Dot(original, original);
-	Vector2 result = *original;
+	Vector3 result = *original;
 	if (dot != 0.0f) {
 		float length = sqrtf(dot);
 		result.x /= length;
@@ -69,24 +70,24 @@ Vector2 Normalize(const Vector2* original) {
 }
 
 void DrawCapsule(const Capsule* capsule) {
-	Vector2 screenStart = ToScreen(&capsule->start);
-	Vector2 screenEnd = ToScreen(&capsule->end);
+	Vector3 screenStart = ToScreen(&capsule->start);
+	Vector3 screenEnd = ToScreen(&capsule->end);
 
 #if DRAW_CAPSULE_ONE_LINE
 	Novice::DrawLine(
 		int(screenStart.x), int(screenStart.y), int(screenEnd.x), int(screenEnd.y), capsule->color);
 #else
-	Vector2 toEnd = { capsule->end.x - capsule->start.x, capsule->end.y - capsule->start.y };
-	Vector2 unitVector = Normalize(&toEnd);
-	Vector2 perpendicular = Perpendicular(&unitVector);
-	Vector2 start1 = {
+	Vector3 toEnd = { capsule->end.x - capsule->start.x, capsule->end.y - capsule->start.y };
+	Vector3 unitVector = Normalize(&toEnd);
+	Vector3 perpendicular = Perpendicular(&unitVector);
+	Vector3 start1 = {
 	  capsule->start.x + perpendicular.x * capsule->radius,
 	  capsule->start.y + perpendicular.y * capsule->radius };
-	Vector2 start2 = {
+	Vector3 start2 = {
 	  capsule->start.x - perpendicular.x * capsule->radius,
 	  capsule->start.y - perpendicular.y * capsule->radius };
-	Vector2 end1 = { start1.x + toEnd.x, start1.y + toEnd.y };
-	Vector2 end2 = { start2.x + toEnd.x, start2.y + toEnd.y };
+	Vector3 end1 = { start1.x + toEnd.x, start1.y + toEnd.y };
+	Vector3 end2 = { start2.x + toEnd.x, start2.y + toEnd.y };
 	start1 = ToScreen(&start1);
 	start2 = ToScreen(&start2);
 	end1 = ToScreen(&end1);
@@ -103,33 +104,33 @@ void DrawCapsule(const Capsule* capsule) {
 		capsule->color, kFillModeWireFrame);
 }
 
-Vector2 Rotate(const Vector2* original, float angle) {
+Vector3 Rotate(const Vector3* original, float angle) {
 	return {
 	  original->x * cosf(angle) - original->y * sinf(angle),
 	  original->y * cosf(angle) + original->x * sinf(angle) };
 }
 
-Vector2 ClosestPoint(const Line* line, const Vector2* point) {
+Vector3 ClosestPoint(const Line* line, const Vector3* point) {
 	// 直線のベクトル
-	Vector2 lineVector = { line->end.x - line->start.x, line->end.y - line->start.y };
+	Vector3 lineVector = { line->end.x - line->start.x, line->end.y - line->start.y };
 	float length = sqrtf(lineVector.x * lineVector.x + lineVector.y * lineVector.y);
 
 	// 単位ベクトル
-	Vector2 unitVector = lineVector;
+	Vector3 unitVector = lineVector;
 	if (length != 0.0f) {
 		unitVector.x = lineVector.x / length;
 		unitVector.y = lineVector.y / length;
 	}
 
 	// 始点からポイントへのベクトル
-	Vector2 toCenter = { point->x - line->start.x, point->y - line->start.y };
+	Vector3 toCenter = { point->x - line->start.x, point->y - line->start.y };
 
 	// 内積
 	float dot = toCenter.x * unitVector.x + toCenter.y * unitVector.y;
 
 	// 最近接点が円の内部にいるかどうかで判定
 	dot = fmaxf(0.0f, fminf(dot, length));
-	Vector2 closestPoint = { line->start.x + unitVector.x * dot, line->start.y + unitVector.y * dot };
+	Vector3 closestPoint = { line->start.x + unitVector.x * dot, line->start.y + unitVector.y * dot };
 	return closestPoint;
 }
 
@@ -145,8 +146,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// 変数と定数
 	const float kRotateAngle = 1.0f / 256.0f * float(M_PI);
-	Vector2 kPointA{ 600, 400 };
-	const Vector2 kBaseVector{ -190, -60 };
+	Vector3 kPointA{ 600, 400 };
+	const Vector3 kBaseVector{ -190, -60 };
 	const float kMaxScale = 2.0f;
 	const float kMinScale = 0.5f;
 	const float kScaleIncrement = 0.01f;
@@ -158,16 +159,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	int whiteTextureHandle = Novice::LoadTexture("white1x1.png");
 
 	//カメラ視点
-	Vector2 krPoint = { kPointA.x - 170, kPointA.y - 60 };
-	Vector2 InitkrPoint = { kPointA.x - 170, kPointA.y - 60 };
+	Vector3 krPoint = { kPointA.x - 170, kPointA.y - 60 };
+	Vector3 InitkrPoint = { kPointA.x - 170, kPointA.y - 60 };
 
 
 
-	Vector2 krLeftTop = { krPoint.x - 65,krPoint.y - 25 };
-	Vector2 krRightTop = { krPoint.x - 65,krPoint.y + 25 };
-	Vector2 krLeftBottom = { krPoint.x + 65,krPoint.y - 25 };
-	Vector2 krRightBottom = { krPoint.x + 65,krPoint.y + 25 };
-	Vector2 Xlin[7];
+	Vector3 krLeftTop = { krPoint.x - 65,krPoint.y - 25 };
+	Vector3 krRightTop = { krPoint.x - 65,krPoint.y + 25 };
+	Vector3 krLeftBottom = { krPoint.x + 65,krPoint.y - 25 };
+	Vector3 krRightBottom = { krPoint.x + 65,krPoint.y + 25 };
+	Vector3 Xlin[7];
 	float XlinRadius = 10;
 
 	float  speed = 2;
@@ -391,7 +392,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	}*/
 	int spfrag = true;
 	float spSpeed = 2.0f;
+	float i = 0.01;
 
+	Vector3 rotatedVector = {
+		  kBaseVector.x * cosf(theta) - kBaseVector.y * sinf(theta),
+		  kBaseVector.y * cosf(theta) + kBaseVector.x * sinf(theta) };
+	rotatedVector.x *= scale;
+	rotatedVector.y *= scale;
+
+	Vector3 pointB = { kPointA.x + rotatedVector.x, kPointA.y + rotatedVector.y,15 };
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -409,13 +418,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		
 
-		Vector2 rotatedVector = {
+		Vector3 rotatedVector = {
 		  kBaseVector.x * cosf(theta) - kBaseVector.y * sinf(theta),
-		  kBaseVector.y * cosf(theta) + kBaseVector.x * sinf(theta) };
+		  kBaseVector.y * cosf(theta) + kBaseVector.x * sinf(theta)
+		};
 		rotatedVector.x *= scale;
 		rotatedVector.y *= scale;
 
-		Vector2 pointB = { kPointA.x + rotatedVector.x, kPointA.y + rotatedVector.y };
+		Vector3 pointB = { kPointA.x + rotatedVector.x, kPointA.y + rotatedVector.y,15-i};
 
 		
 
@@ -447,6 +457,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			theta -= kRotateAngle;
 			speed += 2;
 		}
+
+
+		if (keys[DIK_1]) {
+			i += 0.8;
+		}
+		else if (keys[DIK_2]) {
+			i -= 0.8;
+		}
+
 
 		if (keys[DIK_RIGHT]) {
 			scale -= addScaleValue;
@@ -498,16 +517,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			 jp = true;
 			 budS = true;
 		 }
-		/*krLeftTop = { krPoint.x - 65,krPoint.y - 25 };
-		krLeftBottom = { krPoint.x - 65,krPoint.y + 25 };
-		krRightTop = { krPoint.x + 65,krPoint.y - 25 };
-		krRightBottom = { krPoint.x + 65,krPoint.y + 25 };*/
+		
+
+
 		capsule.start = { kPointA };
-		capsule.end = { pointB };
+		capsule.end = { kPointA.x + rotatedVector.x, kPointA.y + rotatedVector.y };
 		Line capsuleLine = { capsule.start, capsule.end, WHITE };
+
 		for (int i=0; i < 50; i++) {
-			Vector2 closestPoint = ClosestPoint(&capsuleLine, &block[i].pos);
-			Vector2 closestPointToCenter = {
+			Vector3 closestPoint = ClosestPoint(&capsuleLine, &block[i].pos);
+			Vector3 closestPointToCenter = {
 		 block[i].pos.x - closestPoint.x, block[i].pos.y - closestPoint.y};
 			float sumRadius = block[i].radius + capsule.radius;
 			block[i].color = WHITE;
@@ -518,6 +537,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 		}
 		
+
+
 		if (kMaxScale < scale) {
 			scale = kMaxScale - (scale - kMaxScale);
 			addScaleValue = -kScaleIncrement;
@@ -527,14 +548,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			addScaleValue = kScaleIncrement;
 		}
 
-		if (keys[DIK_SPACE]) {
-			pointB.x = pointB.x + spSpeed;
-			spfrag = false;
-		}
 
-		if (spfrag == false) {
-			pointB.x = pointB.x + spSpeed;
-		}
 		///
 		/// 
 		/// ↑更新処理ここまで
@@ -543,8 +557,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓描画処理ここから
 		///
 		Novice::DrawBox(840, 300, 1000, 1000, 0.0f, WHITE, kFillModeSolid);
-		//Novice::DrawBox(670, 150, 75, 300, 0.0f, WHITE, kFillModeSolid);
-		//Novice::DrawBox(850, 50, 400, 75, 0.0f, WHITE, kFillModeSolid);
+		
 		for (int i = 0; i < 50; i++) {
 			Novice::DrawEllipse(block[i].pos.x, block[i].pos.y, block[i].radius, block[i].radius, 0.0f, block[i].color, kFillModeSolid);
 		}
@@ -555,54 +568,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//player
 		Novice::DrawEllipse(int(kPointA.x), int(kPointA.y), 20, 20, 0.0f, clocr, kFillModeSolid);
 
-
-		/*Novice::ScreenPrintf(100, 30, "pointB.x=%f", pointB.x);
-		Novice::ScreenPrintf(100, 45, "pointB.y=%f", pointB.y);
-		Novice::ScreenPrintf(0, 0, "kPointA.x=%f", kPointA.x);
-		Novice::ScreenPrintf(0, 15, "kPointA.y=%f", kPointA.y);*/
-
-	
-		//Novice::ScreenPrintf(0, 60, "%d", spfrag);
-
 		Novice::DrawLine(int(kPointA.x), int(kPointA.y), int(pointB.x), int(pointB.y), WHITE);
 
 		
-
-	//	DrawCircle(&circle);
 		DrawCapsule(&capsule);
-		//Vector2 Xlin = { (int(kPointA.x) - int(pointB.x)) / 2 + pointB.x, (int(kPointA.y) - int(pointB.y)) / 2 + pointB.y };
 
 
-		/*Novice::ScreenPrintf(50, 30, "%f", Xlin[0].x);
-		Novice::ScreenPrintf(50, 45, "%f", Xlin[0].y);*/
+		Novice::DrawEllipse(int(pointB.x), int(pointB.y), int(pointB.z), int(pointB.z), 0.0f, RED, kFillModeSolid);
 
 
-		
+		// キャラクターの座標を画面表示する処理
+		ImGui::Begin("Player pos");
+		// float3入力ボックス
+		ImGui::InputFloat3("point", &pointB.x);
 
-
-		Novice::DrawEllipse(int(pointB.x), int(pointB.y), 15, 15, 0.0f, RED, kFillModeSolid);
-
-
-		
-		
-		/*Novice::DrawQuad(
-			int(newLeftTopX + kRectCenterX), int(newLeftTopY + kRectCenterY),
-			int(newRightTopX + kRectCenterX), int(newRightTopY + kRectCenterY),
-			int(newLeftBottomX + kRectCenterX), int(newLeftBottomY + kRectCenterY),
-			int(newRightBottomX + kRectCenterX), int(newRightBottomY + kRectCenterY), 0, 0, 1, 1,
-			whiteTextureHandle, WHITE);*/
-		//Novice::DrawBox(int(pointB.x)-25, int(pointB.y)-25, 50, 50, 0.0f, RED, kFillModeSolid);
-
-
-		// 矩形Aの描画
-		
-		
-
-		//365+25
-		//315
-		// 
-		
-
+		ImGui::End();
 		
 
 
